@@ -35,7 +35,7 @@ Some functions are associated to the inference problem in general, while others 
 ### average\_over\_zones
 *./eeg-tools.jl*
 
-- `average\_over\_zones(s2signal::Dict{String,Vector{Float64}}, s2z::Dict{String,Int64})`
+- `average_over_zones(s2signal::Dict{String,Vector{Float64}}, s2z::Dict{String,Int64})`
 
 Averages the time series of all the sensors within each zone. Average is taken at each time step independently. 
 
@@ -51,8 +51,8 @@ Averages the time series of all the sensors within each zone. Average is taken a
 ### denoise\_fourier
 *./eeg-tools.jl*
 
-- `denoise\_fourier(x::Vector{Float64}, nmodes::Int64)`
-- `denoise\_fourier(X::Matrix{Float64}, nmodes::Int64)`
+- `denoise_fourier(x::Vector{Float64}, nmodes::Int64)`
+- `denoise_fourier(X::Matrix{Float64}, nmodes::Int64)`
 
 Gets rid of the noise in time series by low-pass filtering. Only the `nmodes` lowest modes of the FFT are kept.
 
@@ -68,7 +68,7 @@ Gets rid of the noise in time series by low-pass filtering. Only the `nmodes` lo
 ### get\_idx\_o
 *./hyper-inf-tool.jl*
 
-- `get\_idx\_o(o::Int64, x::Symbolics.Arr{Num,1}, prebasis::Vector{Num})`
+- `get_idx_o(o::Int64, x::Symbolics.Arr{Num,1}, prebasis::Vector{Num})`
 
 Retrieves the indices (in 'prebasis') of the monomials of order 'o' in the variables 'x', involving distincts agents.
 
@@ -85,7 +85,7 @@ Retrieves the indices (in 'prebasis') of the monomials of order 'o' in the varia
 
 ### get\_monomial
 *./hyper-inf-tool.jl*
-- `get\_monomial(x::Symbolics:Arr{Num,1}, c::Vector{Int64})`
+- `get_monomial(x::Symbolics:Arr{Num,1}, c::Vector{Int64})`
 
 Constructing the monomial of variables in `x` with indices of `c`.
 
@@ -100,7 +100,7 @@ Constructing the monomial of variables in `x` with indices of `c`.
 
 ### get\_monomials
 *./hyper-inf-tool.jl*
-- `get\_monomials(x::Symbolics:Arr{Num,1}, o::Int64)`
+- `get_monomials(x::Symbolics:Arr{Num,1}, o::Int64)`
 
 Constructing the list of monomial of order `o` with variables in `x`.
 
@@ -116,7 +116,7 @@ Constructing the list of monomial of order `o` with variables in `x`.
 ### get\_θ
 *./hyper-inf-tool.jl*
 
-- `get\_θ(X::Matrix{Float64}, dmax::Int64)`
+- `get_θ(X::Matrix{Float64}, dmax::Int64)`
 
 Returns the matrix of values of the monomials up to degree `dmax` for each time step of `X`.
 
@@ -130,17 +130,17 @@ Returns the matrix of values of the monomials up to degree `dmax` for each time 
 ### get\_theta
 *./hyper-inf-tool.jl*
 
-- `get\_theta(X::Matrix{Float64}, dmax::Int64)`
+- `get_theta(X::Matrix{Float64}, dmax::Int64)`
 
-Same as `get\_θ`. 
+Same as `get_θ`. 
 
 ---
 
 ### hyper\_inf
 *./hyper-inf.jl*
 
-- `hyper\_inf(X::Matrix{Float64}, Y::Matrix{Float64}, ooi::Vector{Int64}, dmax::Int64, λ::Float64=.1, ρ::Float64=1., niter::Int64=10)`
-- `hyper\_inf(X::Matrix{Float64}, Y::Matrix{Float64}, ooi::Vector{Int64}, dmax::Int64, d::Int64, λ::Float64=.1, ρ::Float64=1.)`
+- `hyper_inf(X::Matrix{Float64}, Y::Matrix{Float64}, ooi::Vector{Int64}, dmax::Int64, λ::Float64=.1, ρ::Float64=1., niter::Int64=10)`
+- `hyper_inf(X::Matrix{Float64}, Y::Matrix{Float64}, ooi::Vector{Int64}, dmax::Int64, d::Int64, λ::Float64=.1, ρ::Float64=1.)`
 
 Infers the hypergraph underlying the dynamics of its vertices with knowledge of the states 'X' and of the derivatives 'Y' at each vertex.
 
@@ -181,14 +181,14 @@ Returns the n-dimensional identity matrix.
 ### inferred\_adj\_nth
 *./hyper-inf-tool.jl*
 
-- `inferred\_adj\_2nd(Ainf::Dict{Tuple{Int64,Vector{Int64}},Float64}, n::Int64, thr::Float64=0.)`
-- `inferred\_adj\_3rd(Ainf::Dict{Tuple{Int64,Vector{Int64}},Float64}, n::Int64, thr::Float64=0.)`
-- `inferred\_adj\_4th(Ainf::Dict{Tuple{Int64,Vector{Int64}},Float64}, n::Int64, thr::Float64=0.)`
+- `inferred_adj_2nd(Ainf::Dict{Tuple{Int64,Vector{Int64}},Float64}, n::Int64, thr::Float64=0.)`
+- `inferred_adj_3rd(Ainf::Dict{Tuple{Int64,Vector{Int64}},Float64}, n::Int64, thr::Float64=0.)`
+- `inferred_adj_4th(Ainf::Dict{Tuple{Int64,Vector{Int64}},Float64}, n::Int64, thr::Float64=0.)`
 
 Returns the inferred nth-order adjacency tensor from `Ainf`.
 
 **INPUT**:\
-`Ainf`: Dictionary of the inferred hyperedges (output of `hyper\_inf`).\
+`Ainf`: Dictionary of the inferred hyperedges (output of `hyper_inf`).\
 `n`: Number of vertices.\
 `thr`: Threshold below which hyperedges are discarded.
 
@@ -201,7 +201,7 @@ Returns the inferred nth-order adjacency tensor from `Ainf`.
 ### list\_all\_subjects
 *./eeg-tools.jl*
 
-- `list\_all\_subjects(n::Int64)`
+- `list_all_subjects(n::Int64)`
 
 Returns a `String` list of all subjects indices with three digits (from "001" up to "999"). 
 
@@ -216,7 +216,7 @@ Returns a `String` list of all subjects indices with three digits (from "001" up
 ### load\_and\_save\_eeg\_avg
 *./eeg-tools.jl*
 
-- `load\_and\_save\_eeg\_avg(subjects::Vector{String}, states::Vector{String}, nz::Int64)`
+- `load_and_save_eeg_avg(subjects::Vector{String}, states::Vector{String}, nz::Int64)`
 
 Loads and saves the time series of `subjects` for tasks `states` in "eeg-data" as .csv files. Each time series is saved under the file name "SxxxRyy-X.csv".
 
@@ -251,7 +251,7 @@ Own implementation of SINDy. Adapted from [this link](https://github.com/eurika-
 ### read\_eeg
 *./eeg-tools.jl*
 
-- `read\_eeg(file::String)`
+- `read_eeg(file::String)`
 
 Reads the .edf file `file` and returns its content as dictionary. 
 
@@ -266,7 +266,7 @@ Reads the .edf file `file` and returns its content as dictionary.
 ### restrict\_box\_size
 *./eeg-tools.jl*
 
-- `restrict\_box\_size(X::Matrix{Float64}, nstep::Int64)`
+- `restrict_box_size(X::Matrix{Float64}, nstep::Int64)`
 
 Restrict the "box" size (see manuscript), by keeping only the `nstep` time steps that are the closest to the median value of the time series. 
 
