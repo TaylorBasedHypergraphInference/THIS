@@ -1,2 +1,1 @@
-# THIS
-THIS: Taylor-based Hypergraph Inference using SINDy
+# THIS: Taylor-based Hypergraph Inference using SINDy
