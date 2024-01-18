@@ -1,7 +1,8 @@
 # THIS: Taylor-based Hypergraph Inference using SINDy
 Companion codes for the manuscript *Delabays, De Pasquale, D&ouml;rfler, and Zhang (2024)*.
 
-[![DOI](https://zenodo.org/badge/10530470.svg)](https://zenodo.org/badge/latestdoi/10530470)
+[![DOI](https://zenodo.org/badge/736235218.svg)](https://zenodo.org/doi/10.5281/zenodo.10530470)
+
 
 ## Summary of the files
 - **eeg-data**: Contains the necessary material for hyperedge inference from EEG time series. Also stores the EDF data files of the EEG measurements. 
