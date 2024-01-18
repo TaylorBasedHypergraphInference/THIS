@@ -2,11 +2,27 @@
 Companion codes for the manuscript *Delabays, De Pasquale, D&ouml;rfler, and Zhang (2024)*.
 
 ## Summary of the files
-- **eeg-data**: Contains the necessary material for hyperedge inference from EEG time series.
+- **eeg-data**: Contains the necessary material for hyperedge inference from EEG time series. Also stores the EDF data files of the EEG measurements. 
 - **eeg-run.jl**: Runs THIS on EEG time series. By default, the time series are assumed to be save in **eeg-data** as *.edf* files. As long as all files are correctly provided, this script can be run with *"include("eeg-run.jl")* in a Julia terminal.
 - **eeg-tools.jl**: Contains all side functions necessary to run THIS on EEG time series. 
 - **hyper-inf.jl**: Contains the core functions to run THIS. 
 - **hyper-inf-tools.jl**: Contains all the side functions necessary to run THIS.
+
+## Prerequisite
+The code has been developed with Julia 1.9. 
+The necessary packages are *Combinatorics*, *DataDrivenDiffEq*, *DataDrivenSparse*, *DelimitedFiles*, *EDF*, *FFTW*, *LinearAlgebra*, *ModelingToolkit*, *PyPlot*, and *Statistics*. 
+
+## Hypergraph inference
+The main function for inference is 'hyper\_inf', which performs the whole inference. 
+
+## Hypergraph inference from EEG data
+The script `eeg-run.jl` infers hyperedges from EEG data. By default, the time series are assumed to be save in **eeg-data** as *.edf* files. As long as all files are correctly provided, this script can be run with *include("eeg-run.jl")* in a Julia terminal.
+
+The parameters that can be tuned in the script are:
+- `nz` [line 6], the number of aggregating zones on the scalp. If the value is changed, the corresponding files `sensors-nz.csv` and `zones-nz.csv` should be provided. 
+- `λ` and `ρ` [lines 9 and 10], the sparsity threshold and the regularization parameter in SINDy. 
+- `subjects` [line 13], the list of subjects considered. Subjects should be labeled by a 3-digit string index `xxx` appearing in the data file name `SxxxRyy.edf`. 
+- `states` [line 14], thelist of states considered. States should be labeled by a 2-digit string index `yy` appearing in the data file name `SxxxRyy.ed`. 
 
 ## List of functions
 Some functions are associated to the inference problem in general, while others are dedicated to the implementation of THIS to the hypergraph inference from EEG data. 
