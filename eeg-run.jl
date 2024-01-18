@@ -10,9 +10,10 @@ nz = 7 # Number of zones on the scalp.
 ρ = .1
 
 # Data to be loaded. We recommend to load a subset of the subjects or of the states.
-subjects = list_all_subjects(109)
-#states = ["01","02"] # Resting state
-states = ["03","07","11"] # Task 1
+#subjects = list_all_subjects(109) # Runs THIS on all the time series (can be long).
+subjects = ["001","002"]
+states = ["01","02"] # Resting state
+#states = ["03","07","11"] # Task 1
 
 # Pairing between sensors to zones
 s = readdlm("eeg-data/sensors-$nz.csv",',',String)
@@ -69,21 +70,17 @@ for subject in subjects
 		global AA2 += B2
 		global AA3 += B3
 
-		if save_data
-			writedlm("eeg-data/S"*subject*"R"*state*"-A2.csv",A2,',')
-			x = zeros(nz,0)
-			for i in 1:nz
-				x = [x A3[:,:,i]]
-			end
-			writedlm("eeg-data/S"*subject*"R"*state*"-A3.csv",x,',')
-
-			writedlm("eeg-data/S"*subject*"R"*state*"-coeff.csv",xxx[2],',')
+		writedlm("eeg-data/S"*subject*"R"*state*"-A2.csv",A2,',')
+		x = zeros(nz,0)
+		for i in 1:nz
+			x = [x A3[:,:,i]]
 		end
-	end
+		writedlm("eeg-data/S"*subject*"R"*state*"-A3.csv",x,',')
+
+		writedlm("eeg-data/S"*subject*"R"*state*"-coeff.csv",xxx[2],',')
+		end
 	global relerr = [relerr re]
 end
 
-if save_data
-	writedlm("eeg-data/relative-error.csv",relerr,',')
-end
+writedlm("eeg-data/relative-error.csv",relerr,',')
 
