@@ -1,6 +1,8 @@
 # THIS: Taylor-based Hypergraph Inference using SINDy
 Companion codes for the manuscript *Delabays, De Pasquale, D&ouml;rfler, and Zhang (2024)*.
 
+[![DOI](https://zenodo.org/badge/10530470.svg)](https://zenodo.org/badge/latestdoi/10530470)
+
 ## Summary of the files
 - **eeg-data**: Contains the necessary material for hyperedge inference from EEG time series. Also stores the EDF data files of the EEG measurements. 
 - **eeg-run.jl**: Runs THIS on EEG time series. By default, the time series are assumed to be save in **eeg-data** as *.edf* files. As long as all files are correctly provided, this script can be run with *"include("eeg-run.jl")* in a Julia terminal.
