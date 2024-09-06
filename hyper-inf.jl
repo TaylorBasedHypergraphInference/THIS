@@ -33,44 +33,83 @@ function hyper_inf(X::Matrix{Float64}, Y::Matrix{Float64}, ooi::Vector{Int64}, d
 		return nothing
 	end
 
-	# Defining the basis of functions to use, i.e., the monomials up to order 'dmax'.
-	@variables x[1:n]
-	prebasis = polynomial_basis([x[i] for i in 1:n],dmax)
-	basis = Basis(prebasis,[x[i] for i in 1:n])
+	# Running THIS
+	coeff,idx_mon,relerr = this(X,Y,ooi,dmax,λ,ρ,niter)
 
-	# Perform THIS
-	coeff,err,relerr = this(X,Y,ooi,dmax,λ,ρ,niter)
+	@info "THIS completed."
 
-	# Retrieving the results of SINDy and doing the inference.
-	idx_o = Dict{Int64,Vector{Int64}}() # For each order o, contains the indices of the basis elements in x corresponding to hyperedges of order o and involving distinct agents. 
-	agents_o = Dict{Int64,Vector{Vector{Int64}}}() # Lists the sets of agents involved in each hyperedge from idx_o. 
-	Ainf = Dict{Int64,Any}() # For each order o, associates a dictionary associating the pair (agents, hyperedge) to the inferred weight, as seen from the agent.
-	for o in sort(ooi,rev=true)
-		Ainf[o] = Dict{Tuple{Int64,Vector{Int64}},Float64}() # Inferred hyperedges of order o
-		idx_o[o],agents_o[o] = get_idx_o(o-1,x,prebasis)
-		for k in 1:length(idx_o[o])
-			id = idx_o[o][k]
-			agents = agents_o[o][k]
-			cagents = setdiff(1:n,agents)
-			y = coeff[cagents,id]
-			ynz = y[Int64.(setdiff((1:length(y)),[0.,]))]
-			yds = Int64.(setdiff(cagents,[0,]))
-			for j in 1:length(yds)
-				Ainf[o][(yds[j],sort([yds[j];agents]))] = ynz[j]
-			end
+
+	Ainf = Dict{Int64,Matrix{Float64}}(o => zeros(0,o+1) for o in 1:dmax+1) # For each order o, associates a dictionary associating the pair (agents, hyperedge) to the inferred weight, as seen from the agent.
+	idx_coeff = Dict{Int64,Vector{Int64}}()
+	nz_idx = Int64[]
+	for i in keys(idx_mon)
+		aaa = setdiff((1:n)[abs.(coeff[:,i]) .> 1e-8],idx_mon[i])
+		if !isempty(aaa)
+			push!(nz_idx,i)
+			idx_coeff[i] = aaa
 		end
 	end
 
-	return Ainf, coeff, err, relerr
+	for id in nz_idx
+		ii = idx_coeff[id]
+		jj = idx_mon[id]
+		o = length(jj)+1
+		Ainf[o] = vcat(Ainf[o],[ii repeat(jj',length(ii),1) coeff[ii,id]])
+	end
+
+	@info "Dictionary of inferred adjacency tensors built."
+
+	return Ainf, coeff, relerr
 end
 
-function hyper_inf(X::Matrix{Float64}, Y::Matrix{Float64}, ooi::Union{Int64,Vector{Int64}}, dmax::Int64, d::Int64, λ::Float64=.1, ρ::Float64=1., niter::Int64=10)
-	Ainf, coeff, err, relerr = hyper_inf(X,Y,ooi,dmax,λ,ρ)
+function hyper_inf(X::Matrix{Float64}, Y::Matrix{Float64}, ooi::Vector{Int64}, dmax::Int64, d::Int64, λ::Float64=.1, ρ::Float64=1., niter::Int64=10)
+	Ainf, coeff, relerr = hyper_inf(X,Y,ooi,dmax,λ,ρ,niter)
 
 	Ainf,AAinf = one2dim(Ainf,d)
 
-	return Ainf, AAinf, coeff, err, relerr
+	return Ainf, AAinf, coeff, relerr
 end
+
+# ================================================================================
+# TODO documentation...
+
+function hyper_inf_filter(X::Matrix{Float64}, Y::Matrix{Float64}, ooi::Vector{Int64}, dmax::Int64, α::Float64=.9, λ::Float64=.1, ρ::Float64=1., niter::Int64::10)
+	if size(X) != size(Y)
+		@info "Dimensions of states and derivatives do not match."
+		return nothing
+	end
+
+	# Listing pairs of agents whose trajectories have a correlation coefficient above 'α'.
+	keep = keep_correlated(X,α)
+
+	coeff,ids,relerr = this_filter(X,Y,ooi,keep,λ,ρ,niter)
+# TODO check that 'this_filter' returns the right objects
+	
+# TODO reconstruct the adjacency tensors here
+
+	return Ainf, coeff, ids, relerr
+end
+
+function hyper_inf_filter(X::Matrix{Float64}, Y::Matrix{Float64}, ooi::Vector{Int64}, dmax::Int64, nkeep::Int64, λ::Float64=.1, ρ::Float64=1., niter::Int64=10)
+	if size(X) != size(Y)
+		@info "Dimesions of states and derivatives do not match."
+		return nothing
+	end
+
+	# Listing the 'nkeep' pairs of agents with the largest correlation coefficients.
+	keep = keep_correlated(X,nkeep)
+#TODO add 'keep_correlated' to 'hyper-inf-tool.jl'
+	
+	coeff,ids,relerr = this_filter(X,Y,ooi,keep,λ,ρ,niter)
+# TODO check that 'this_filter' returns the right objects
+	
+# TODO reconstruct the adjacency tensors here
+	
+	return Ainf, coeff, ids, relerr
+end
+
+
+
 
 # ================================================================================
 """
@@ -98,11 +137,69 @@ function this(X::Matrix{Float64}, Y::Matrix{Float64}, ooi::Vector{Int64}, dmax::
 	end
 
 	# Retrieve the values of the monomials at each time step.
-	θ = get_θ(X,dmax)
+	θ,d = get_θd(X,dmax)
+	idx_mon = Dict{Int64,Vector{Int64}}()
+	for i in 1:size(d)[1]
+		mon = d[i,:][d[i,:] .!= 0]
+		if length(mon) == length(union(mon))
+			idx_mon[i] = sort(mon)
+		end
+	end
 
-	return mySINDy(θ,Y,λ,ρ,niter)
+	coeff, relerr = mySINDy(θ,Y,λ,ρ,niter)
+
+	return coeff, idx_mon, relerr
 end
 	
+# ================================================================================
+# TODO write doc
+
+function this_filter(X::Matrix{Float64}, Y::Matrix{Float64}, ooi::Vector{Int64}, dmax::Int64, keep::Vector{Vector{Int64}}, λ::Float64=.1, ρ::Float64=1., niter::Int64=10)
+	if size(X) != size(Y)
+		@info "Time series' sizes do not match."
+	end
+
+	n,T = size(X)
+
+	d = get_d(n,dmax) # Lists the indices of the agents involved in each monomial.
+	d2i = Dict{Vector{Int64},Int64}(sort(d[i,:]) => i for i in 1:size(d)[1]) # Returns the index of each element of 'd'.
+
+	i2keep = Dict{Int64,Vector{Int64}}(i => Int64[] for i in 1:n) 
+	for k in 1:length(keep)
+		i,j = keep[k]
+		push!(i2keep[i],k)
+	end
+
+	coeff = Dict{Int64,Matrix{Float64}}()
+	ids = Dict{Int64,Vector{Int64}}(i => Int64[] for i in 1:n) # For each agent, contains the idinces of the relevant monomials (according to 'keep').
+	for i in 1:n
+		θ = ones(1,T)
+		id = [1,]
+		for k in i2keep[i]
+			j = setdiff(keep[k],[i,])[1]
+			θ = vcat(θ,reduce(vcat,[prod(X[v,:],dims=1) for v in [setdiff([j,l],[0,]) for l in 0:n]]))
+			append!(id,[d2i[v] for v in [sort([j,l]) for l in 0:n]])
+		end
+
+		iii = unique(a -> id[a], eachindex(id))
+		id = id[iii]
+		θ = θ[iii,:]
+
+		@info "Running mySINDy for agent $i"
+		if isempty(id)
+			coef = zeros(0,0)
+		else
+			coef,relerr = mySINDy(θ,Y[[i,],:],λ,ρ,niter)
+			ids[i] = id
+		end
+
+		coeff[i] = coef
+	end
+# TODO implement the computation of the relative error...
+	return coeff, ids, relerr
+end
+
+
 # ================================================================================
 """
 	mySINDy(θ::Matrix{Float64}, Y::Matrix{Float64}, λ::Float64=.1, ρ::Float64=1., niter::Int64=10)

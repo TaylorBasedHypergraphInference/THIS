@@ -1,6 +1,8 @@
+# TODO clean packages list
 using DataDrivenDiffEq, ModelingToolkit, LinearAlgebra, DataDrivenSparse, LinearAlgebra, PyPlot, Combinatorics, Statistics
 
 # ================================================================================
+# TODO probably not needed anymore...
 """
 	get_idx_o(o::Int64, x::Symbolics.Arr{Num,1}, prebasis::Vector{Num})
 
@@ -31,6 +33,7 @@ function get_idx_o(o::Int64, x::Symbolics.Arr{Num,1}, prebasis::Vector{Num})
 end
 
 # ================================================================================
+# TODO probably not needed anymore...
 """
 	get_monomial(x::Symbolics:Arr{Num,1}, c::Vector{Int64})
 
@@ -53,6 +56,7 @@ function get_monomial(x::Symbolics.Arr{Num,1}, c::Vector{Int64})
 end
 
 # ================================================================================
+# TODO probably not needed anymore...
 """
 	get_monomials(x::Symbolics:Arr{Num,1}, o::Int64)
 
@@ -78,6 +82,7 @@ function get_monomials(x::Symbolics.Arr{Num,1}, o::Int64)
 end
 
 # ================================================================================
+# TODO now we have 'get_θ', 'get_d', and 'get_θd'...
 """
 	get_θ(X::Matrix{Float64}, dmax::Int64)
 	get_theta(X::Matrix{Float64}, dmax::Int64)
@@ -127,6 +132,7 @@ function Id(n::Int64)
 end
 
 # ================================================================================
+# TODO maybe move to sparse notation for adjacency tensors...
 """
 	inferred_adj_2nd(Ainf::Dict{Tuple{Int64,Vector{Int64}},Float64}, n::Int64, thr::Float64=0.)
 
@@ -218,6 +224,7 @@ function inferred_adj_4th(Ainf::Dict{Tuple{Int64,Vector{Int64}},Float64}, n::Int
 end
 
 # ================================================================================
+# TODO adapt for the list convention of adjacency tensors...
 """
 	one2dim(Ainf::Dict{Int64,Any}, d::Int64=1)
 

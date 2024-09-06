@@ -57,6 +57,7 @@ for subject in subjects
 		# Inference
 		ooi = [2,3]
 		dmax = 4
+# TODO check that 'hyper_inf' is not broken...
 		xxx = hyper_inf(X,Y,ooi,dmax,λ,ρ)
 		push!(re,xxx[4])
 		
