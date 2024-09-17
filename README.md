@@ -1,5 +1,5 @@
 # THIS: Taylor-based Hypergraph Inference using SINDy
-Companion codes for the manuscript *Delabays, De Pasquale, D&ouml;rfler, and Zhang (2024)*.
+Companion codes for the manuscript [Delabays, De Pasquale, D&ouml;rfler, and Zhang (2024)](https://arxiv.org/abs/2402.00078).
 
 **Please contact us if you notice any typo or bug!**
 
