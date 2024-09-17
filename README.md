@@ -1,22 +1,24 @@
 # THIS: Taylor-based Hypergraph Inference using SINDy
 Companion codes for the manuscript *Delabays, De Pasquale, D&ouml;rfler, and Zhang (2024)*.
 
-[![DOI](https://zenodo.org/badge/736235218.svg)](https://zenodo.org/doi/10.5281/zenodo.10530470)
+**Please contact us if you notice any typo or bug!**
 
+[![DOI](https://zenodo.org/badge/736235218.svg)](https://zenodo.org/doi/10.5281/zenodo.10530470)
 
 ## Summary of the files
 - **eeg-data**: Contains the necessary material for hyperedge inference from EEG time series. Also stores the EDF data files of the EEG measurements. 
-- **eeg-run.jl**: Runs THIS on EEG time series. By default, the time series are assumed to be save in **eeg-data** as *.edf* files. As long as all files are correctly provided, this script can be run with *"include("eeg-run.jl")* in a Julia terminal.
+- **eeg-run.jl**: Runs THIS on EEG time series. By default, the time series are assumed to be save in **eeg-data** as *.edf* files. As long as all files are correctly provided, this script can be run with *"include("eeg-run.jl")* in a Julia terminal. Running the script for all 218 time series take approximately 60 seconds on a standard laptop.
 - **eeg-tools.jl**: Contains all side functions necessary to run THIS on EEG time series. 
-- **hyper-inf.jl**: Contains the core functions to run THIS. 
-- **hyper-inf-tools.jl**: Contains all the side functions necessary to run THIS.
+- **this.jl**: Contains the core functions to run THIS. 
+- **this-parallel.jl**: Contains the core function to run THIS in parallel.
+- **this-tools.jl**: Contains all the side functions necessary to run THIS.
 
 ## Prerequisite
 The code has been developed with Julia 1.9. 
-The necessary packages are *Combinatorics*, *DataDrivenDiffEq*, *DataDrivenSparse*, *DelimitedFiles*, *EDF*, *FFTW*, *LinearAlgebra*, *ModelingToolkit*, *PyPlot*, and *Statistics*. 
+The necessary packages are *Combinatorics*, *DelimitedFiles*, *EDF*, *FFTW*, *LinearAlgebra*, and *Statistics*. 
 
 ## Hypergraph inference
-The main function for inference is 'hyper\_inf', which performs the whole inference. 
+The main function for inference is 'this', which performs the whole inference. 
 
 ## Hypergraph inference from EEG data
 The script `eeg-run.jl` infers hyperedges from EEG data. By default, the time series are assumed to be save in **eeg-data** as *.edf* files. As long as all files are correctly provided, this script can be run with *include("eeg-run.jl")* in a Julia terminal.
@@ -25,21 +27,25 @@ The parameters that can be tuned in the script are:
 - `nz` [line 6], the number of aggregating zones on the scalp. If the value is changed, the corresponding files `sensors-nz.csv` and `zones-nz.csv` should be provided. 
 - `λ` and `ρ` [lines 9 and 10], the sparsity threshold and the regularization parameter in SINDy. 
 - `subjects` [line 13], the list of subjects considered. Subjects should be labeled by a 3-digit string index `xxx` appearing in the data file name `SxxxRyy.edf`. 
-- `states` [line 14], thelist of states considered. States should be labeled by a 2-digit string index `yy` appearing in the data file name `SxxxRyy.ed`. 
+- `states` [line 14], the list of states considered. States should be labeled by a 2-digit string index `yy` appearing in the data file name `SxxxRyy.ed`. 
 
 ## List of functions
 Some functions are associated to the inference problem in general, while others are dedicated to the implementation of THIS to the hypergraph inference from EEG data. 
 
 ### Functions for inference
-- [get\_idx\_o](#get\_idx\_o)
-- [get\_monomial](#get\_monomial)
-- [get\_monomials](#get\_monomials)
-- [get\_θ](#get\_θ)
-- [hyper\_inf](#hyper\_inf)
+- [get\_d](#get\_θd)
+- [get\_θ](#get\_θd)
+- [get\_θd](#get\_θd)
 - [Id](#Id)
-- [inferred\_adj\_nth](#inferred\_adj\_nth)
+- [keep\_correlated](#keep\_correlated)
 - [mySINDy](#mySINDy)
+- [mySINDy\_par](#mySINDy\_par)
+- [mySINDy\_par\_filter](#mySINDy\_par\_filter)
+- [one2dim](#one2dim)
 - [this](#this)
+- [this\_filter](#this\_filter)
+- [this\_par](#this\_par)
+- [this\_par\_filter](#this\_par\_filter)
  
 ### Functions for EEG data
 - [average\_over\_zones](#average\_over\_zones)
@@ -84,106 +90,36 @@ Gets rid of the noise in time series by low-pass filtering. Only the `nmodes` lo
 
 ---
 
-### get\_idx\_o
-*./hyper-inf-tool.jl*
+### get\_θd
+*./this-tools.jl*
 
-- `get_idx_o(o::Int64, x::Symbolics.Arr{Num,1}, prebasis::Vector{Num})`
+- `get\_θd(X::Matrix{Float64}, dmax::Int64, i0::Int64=1)`
+- `get\_thetad(X::Matrix{Float64}, dmax::Int64, i0::Int64=1)`
 
-Retrieves the indices (in 'prebasis') of the monomials of order 'o' in the variables 'x', involving distincts agents.
+Returns the matrix of values of the monomials up to degree `dmax` for each time step of `X`. As well as the list of the agents involved in each of the monomials (mostly for indexing purpose).
 
-**INPUT**:\
-`o`: Order of the monomials.\
-`x`: Symbolic variables of the agents' states.\
-`prebasis`: List of equations defining the monomials in terms of the variables in `x`.
+- `get\_θ(X::Matrix{Float64}, dmax::Int64, i0::Int64=1)`
+- `get\_theta(X::Matrix{Float64}, dmax::Int64, i0::Int64=1)`
 
-**OUTPUT**:\
-`idx`: List of indices of the elements of `prebasis` corresponding to hyperedges of order `o`, involving distinct agents.\
-`agents`: List of the agents involved in each of the above hyperedges.
+Returns only the monomials.
 
----
+- `get\_d(n::Int64, dmax::Int64, i0::Int64=1)`
 
-### get\_monomial
-*./hyper-inf-tool.jl*
-- `get_monomial(x::Symbolics:Arr{Num,1}, c::Vector{Int64})`
-
-Constructing the monomial of variables in `x` with indices of `c`.
-
-**INPUT**:\
-`x`: Symbolic variables for the states of agents.\
-`c`: Indices of the variables involved in the monomial.
-
-**OUTPUT**:\
-`mon`: Symbolic monomial.
-
----
-
-### get\_monomials
-*./hyper-inf-tool.jl*
-- `get_monomials(x::Symbolics:Arr{Num,1}, o::Int64)`
-
-Constructing the list of monomial of order `o` with variables in `x`.
-
-**INPUT**:\
-`x`: Symbolic variables for the states of agents.\
-`o`: Order of the monomials.
-
-**OUTPUT**:\
-`mon`: Symbolic monomials.
-
----
-
-### get\_θ
-*./hyper-inf-tool.jl*
-
-- `get_θ(X::Matrix{Float64}, dmax::Int64)`
-
-Returns the matrix of values of the monomials up to degree `dmax` for each time step of `X`.
+Returns only the list of agents involved.
 
 **INPUT**:\
 `X`: Time series of the agents' states. Rows indices are the agents' indices and the columns indices are the time steps.\
-`dmax`: Maximal monomial degree to be considered. 
+`dmax`: Maximal monomial degree to be considered. \
+`i0`: Index of the first agent to consider in the list (mostly for recursive calling purpose).
 
 **OUTPUT**:\
-`θ`: Matrix of the monomial values. Rows indices are the monomial indices and columns indices are the time steps.
-
-### get\_theta
-*./hyper-inf-tool.jl*
-
-- `get_theta(X::Matrix{Float64}, dmax::Int64)`
-
-Same as `get_θ`. 
-
----
-
-### hyper\_inf
-*./hyper-inf.jl*
-
-- `hyper_inf(X::Matrix{Float64}, Y::Matrix{Float64}, ooi::Vector{Int64}, dmax::Int64, λ::Float64=.1, ρ::Float64=1., niter::Int64=10)`
-- `hyper_inf(X::Matrix{Float64}, Y::Matrix{Float64}, ooi::Vector{Int64}, dmax::Int64, d::Int64, λ::Float64=.1, ρ::Float64=1.)`
-
-Infers the hypergraph underlying the dynamics of its vertices with knowledge of the states 'X' and of the derivatives 'Y' at each vertex.
-
-**INPUT**:\
-`X`: Time series of the system's state. Each row is the time series of the state of one agent.\
-`Y`: Time series of the system's velocity. Each row is the time series of the velocity of on agent.\
-`ooi`: Orders of interest. Vector of integers listing the orders of interactions that we analyze.\
-`dmax`: Maximal degree to be considered in the Taylor expansion. Typically, dmax=maximum(ooi).\
-[`d`: Internal dimension of the agents. It is assmued that the components of an agents are consecutive in the state vector.]\
-`λ`: SINDy's threshold deciding whether an hyperedge exists or not.\
-`ρ`: Regularization parameters promoting sparsity.\
-`niter`: Maximal number of iterations for THIS algorithm.
-
-**OUTPUT**:\
-`Ainf`: Dictionary associating the inferred coefficient of the Taylor expansion to a pair (node,hyperedge). Namely, 'Ainf[(i,h)]' is the coefficient corresponding to the hyperedge 'h' in the Taylor expansion of the dynamics of node 'i'. If agents have internal dimensions larger than 1, `Ainf` is just a boolean.\
-[`AAinf`: Contains the inferred coefficients for edges in systems where agents have internal dimension larger than 1.]\
-`coeff`: Matrix of coefficents obtained by SINDy. The row indices are the agents' indices and the columns indices are the indices of the monomials in the Taylor series.\
-`err`: Absolute error, i.e., squared difference between `Y` and the inferred corresponding time series.\
-`relerr`: Relative error, i.e., `err` normalized by the squared magnitude of `Y`.
+`θ`: Matrix of the monomial values. Rows indices are the monomial indices and columns indices are the time steps.\
+`d`: List of the agents involved in each monomial of `θ`. Each row has `dmax` elements. If one element appears multiple times, it means that its degree is larger that 1 in the monomial. If there are some zeros in the row, it means that the monomial has degree smaller than `dmax`. 
 
 ---
 
 ### Id
-*./hyper-inf-tool.jl*
+*./this-tool.jl*
 
 - `Id(n::Int64)`
 
@@ -196,24 +132,24 @@ Returns the n-dimensional identity matrix.
 `Id`: Identity matrix of size `n`.
 
 ---
+### keep\_correlated
+*./this-tools.jl*
 
-### inferred\_adj\_nth
-*./hyper-inf-tool.jl*
+- `keep\_correlated(X::Matrix{Flaot64}, α::Float64)`
 
-- `inferred_adj_2nd(Ainf::Dict{Tuple{Int64,Vector{Int64}},Float64}, n::Int64, thr::Float64=0.)`
-- `inferred_adj_3rd(Ainf::Dict{Tuple{Int64,Vector{Int64}},Float64}, n::Int64, thr::Float64=0.)`
-- `inferred_adj_4th(Ainf::Dict{Tuple{Int64,Vector{Int64}},Float64}, n::Int64, thr::Float64=0.)`
+Returns the list of pairs of time series (rows of `X`) whose Pearson correlation factor is larger than `α`.
 
-Returns the inferred nth-order adjacency tensor from `Ainf`.
+- `keep\_correlated(X::Matrix{Float64}, k0::Int64)`
+
+Returns the list of the `k0` pairs of time series (rows of `X`) that have the largest Pearson correlation. 
 
 **INPUT**:\
-`Ainf`: Dictionary of the inferred hyperedges (output of `hyper_inf`).\
-`n`: Number of vertices.\
-`thr`: Threshold below which hyperedges are discarded.
+`X`: Time series with rows indexing the degrees of freedom and the columns indexing the time steps.\
+`α`: Correlation threshold above which we keep the pairs of time series.\
+`k0`: Number of pairs of time series that are kept.
 
 **OUTPUT**:\
-`At_bool`: Boolean adjacency tensor.\
-`At_float`: Weighted adjacency tensor.
+`keep`: List of the pairs of time series that are kept.
 
 ---
 
@@ -247,7 +183,7 @@ Loads and saves the time series of `subjects` for tasks `states` in "eeg-data" a
 ---
 
 ### mySINDy
-*./hyper-inf.jl*
+*./this.jl*
 
 - `mySINDy(θ::Matrix{Float64}, Y::Matrix{Float64}, λ::Float64=.1, ρ::Float64=1., niter::Int64=10)`
 
@@ -262,8 +198,54 @@ Own implementation of SINDy. Adapted from [this link](https://github.com/eurika-
 
 **OUTPUT**:\
 `coeff`: Matrix of coefficient inferred by SINDy. The index of each row is the index of an agent and the the columns corresponds to elements of the Taylor basis.\
-`err`: Squared difference between the inferred time series for `Y` and `Y` itself.\
-`relerr`: `err` normalized by the squared magnitude of `Y`.
+`err`: Squared difference between the inferred time series for `Y` and `Y` itself.
+
+---
+
+### mySINDy\_par
+*./this-parallel.jl*
+
+- `mySINDy\_par(arg::Tuple{Int64,Matrix{Float64},Matrix{Float64},Int64,Float64,Float64,Int64})`
+
+Parallel version of mySINDy, to be used without filtering!
+
+**INPUT** (in arg):\
+`i`: Index of the time series analyzed.\
+`X`: Time series of the agents' states.\
+`Y`: Time series of the time derivative of agent `i`.\
+`dmax`: Maximal degree to consider in the monomial library.\
+`λ`: SINDy's threshold deciding whether an hyperedge exists or not.\
+`ρ`: Regularization parameters promoting sparsity.\
+`niter`: Maximal number of iterations for THIS algorithm.
+
+**OUTPUT** (written in a file):\
+`Ξ`: Matrix of coefficient inferred by SINDy. The index of each row is the index of an agent and the the columns corresponds to elements of the Taylor basis.\
+`err`: 1-norm of the difference between `Y` and the inferred dynamics.
+
+---
+
+### mySINDy\_par\_filter
+*./this-parallel.jl*
+
+- `mySINDy\_par\_filter(arg::Tuple{Int64,Matrix{Float64},Matrix{Float64},Vector{Int64},Vector{Vector{Int64}},Dict{Vector{Int64},Int64},Float64,Float64,Int64})`
+
+Parallel version of mySINDy, to be used with filtering!
+
+**INPUT** (in arg):\
+`i`: Index of the time series analyzed.\
+`X`: Time series of the agents' states.\
+`Y`: Time series of the time derivative of agent `i`.\
+`i2keepi`: Filtering parameter.\
+`keep`: List of pairs of agents to be considered.\
+`d2i`: Filtering parameter.\
+`λ`: SINDy's threshold deciding whether an hyperedge exists or not.\
+`ρ`: Regularization parameters promoting sparsity.\
+`niter`: Maximal number of iterations for THIS algorithm.
+
+**OUTPUT** (written in a file):\
+`Ξ`: Matrix of coefficient inferred by SINDy. The index of each row is the index of an agent and the the columns corresponds to elements of the Taylor basis.\
+`ids`: List of monomials indices that are present in `Ξ`.\
+`err`: 1-norm of the difference between `Y` and the inferred dynamics.
 
 ---
 
@@ -299,12 +281,28 @@ Restrict the "box" size (see manuscript), by keeping only the `nstep` time steps
 
 ---
 
+### one2dim
+*./this-tool.jl*
+
+- `one2dim(Ainf::Dict{Int64,Matrix{Float64}}, d::Int64=1)`
+
+Transforms the hypergraph inferred for `n``d` agents with a single internal dimension to a hypergraph of `n` agents with `d` internal dimension.
+
+**INPUT**:\
+`Ainf`: Dictionary of the inferred adjacency lists (output of `hyper_inf`).\
+`d`: Internal dimension of agents.
+
+**OUTPUT**:\
+`AAinf`: Dictionary of the inferred adjacency lists with aggregted node dimensions.
+
+---
+
 ### this
-*./hyper-inf.jl*
+*./this.jl*
 
 - `this(X::Matrix{Float64}, Y::Matrix{Float64}, ooi::Vector{Int64}, dmax::Int64, λ::Float64=.1, ρ::Float64=1., niter::Int64=10)`
 
-Runs THIS algorithm, returning the matrix of inferred coefficients, and the absolute and relative errors.
+Infers the hypergraph underlying the dynamics of its vertices with knowledge of the states 'X' and of the derivatives 'Y' at each vertex.
 
 **INPUT**:\
 `X`: Time series of the system's state. Each row is the time series of the state of one agent.\
@@ -316,8 +314,85 @@ Runs THIS algorithm, returning the matrix of inferred coefficients, and the abso
 `niter`: Maximal number of iterations for THIS algorithm.
 
 **OUTPUT**:\
-`coeff`: Matrix of coefficient inferred by SINDy. The index of each row is the index of an agent and the the columns corresponds to elements of the Taylor basis.\
-`err`: Squared difference between the inferred time series for `Y` and `Y` itself.\
-`relerr`: `err` normalized by the squared magnitude of `Y`.
+`Ainf`: Dictionary associating the inferred coefficient of the Taylor expansion to a pair (node,hyperedge). Namely, 'Ainf[(i,h)]' is the coefficient corresponding to the hyperedge 'h' in the Taylor expansion of the dynamics of node 'i'. If agents have internal dimensions larger than 1, `Ainf` is just a boolean.\
+`coeff`: Matrix of coefficents obtained by SINDy. The row indices are the agents' indices and the columns indices are the indices of the monomials in the Taylor series.\
+`relerr`: Relative error, i.e., `err` normalized by the magnitude of `Y`.
 
 ---
+
+### this\_filter
+*./this.jl*
+
+- `this\_filter(X::Matrix{Float64}, Y::Matrix{Float64}, ooi::Vector{Int64}, dmax::Int64, par_keep::Union{Int64,Float64}, λ::Float64=.1, ρ::Float64=1., niter::Int64=10)`
+
+Infers the hypergraph underlying the dynamics of its vertices with knowledge of the states 'X' and of the derivatives 'Y' at each vertex.
+
+**INPUT**:\
+`X`: Time series of the system's state. Each row is the time series of the state of one agent.\
+`Y`: Time series of the system's velocity. Each row is the time series of the velocity of on agent.\
+`ooi`: Orders of interest. Vector of integers listing the orders of interactions that we analyze.\
+`dmax`: Maximal degree to be considered in the Taylor expansion. Typically, dmax=maximum(ooi).\
+`par_keep`: Parameter for the pairs to keep. If `Float64`, correlation threshold above which the pairs of time series should be kept. If `Int64`, number of pairs of time series to be kept by filtering (based on correlation).\
+`λ`: SINDy's threshold deciding whether an hyperedge exists or not.\
+`ρ`: Regularization parameters promoting sparsity.\
+`niter`: Maximal number of iterations for THIS algorithm.
+
+**OUTPUT**:\
+`Ainf`: Dictionary associating the inferred coefficient of the Taylor expansion to a pair (node,hyperedge). Namely, 'Ainf[(i,h)]' is the coefficient corresponding to the hyperedge 'h' in the Taylor expansion of the dynamics of node 'i'. If agents have internal dimensions larger than 1, `Ainf` is just a boolean.\
+`coeff`: Matrix of coefficents obtained by SINDy. The row indices are the agents' indices and the columns indices are the indices of the monomials in the Taylor series.\
+`relerr`: Relative error, i.e., `err` normalized by the squared magnitude of `Y`.
+
+---
+
+### this\_par
+*./this-parallel.jl*
+
+- `this\_par(X::Matrix{Float64}, Y::Matrix{Float64}, ooi::Vector{Int64}, dmax::Int64, λ::Float64=.1, ρ::Float64=1., niter::Int64=10)`
+
+Parallel version of THIS. Infers the hypergraph underlying the dynamics of its vertices with knowledge of the states `X` and of the derivatives `Y` at each vertex.
+
+Requires to store some data in a directory named `data`.
+
+**INPUT**:\
+`X`: Time series of the system's state. Each row is the time series of the state of one agent.\
+`Y`: Time series of the system's velocity. Each row is the time series of the velocity of on agent.\
+`ooi`: Orders of interest. Vector of integers listing the orders of interactions that we analyze.\
+`dmax`: Maximal degree to be considered in the Taylor expansion. Typically, dmax=maximum(ooi).\
+`λ`: SINDy's threshold deciding whether an hyperedge exists or not.\
+`ρ`: Regularization parameters promoting sparsity.\
+`niter`: Maximal number of iterations for THIS algorithm.
+
+**OUTPUT**:\
+`Ainf`: Dictionary associating the inferred coefficient of the Taylor expansion to a pair (node,hyperedge). Namely, 'Ainf[(i,h)]' is the coefficient corresponding to the hyperedge 'h' in the Taylor expansion of the dynamics of node 'i'. If agents have internal dimensions larger than 1, `Ainf` is just a boolean.\
+`coeff`: Matrix of coefficents obtained by SINDy. The row indices are the agents' indices and the columns indices are the indices of the monomials in the Taylor series.\
+`relerr`: Relative error, i.e., `err` normalized by the magnitude of `Y`.
+
+---
+
+### this\_par\_filter
+*./this-parallel.jl*
+
+- `this\_par\_filter(X::Matrix{Float64}, Y::Matrix{Float64}, ooi::Vector{Int64}, dmax::Int64, par_keep::Union{Int64,Float64}=.9, λ::Float64=.1, ρ::Float64=1., niter::Int64=10)`
+
+Parallel verion of `this_filter`. Infers the hypergraph underlying the dynamics of its vertices with knowledge of the states `X` and of the derivatives `Y` at each vertex.
+
+Requires to store some data in a directory named `data`.
+
+**INPUT**:\
+`X`: Time series of the system's state. Each row is the time series of the state of one agent.\
+`Y`: Time series of the system's velocity. Each row is the time series of the velocity of on agent.\
+`ooi`: Orders of interest. Vector of integers listing the orders of interactions that we analyze.\
+`dmax`: Maximal degree to be considered in the Taylor expansion. Typically, dmax=maximum(ooi).\
+`par_keep`: Parameter for the pairs to keep. If `Float64`, correlation threshold above which the pairs of time series should be kept. If `Int64`, number of pairs of time series to be kept by filtering (based on correlation).\
+`λ`: SINDy's threshold deciding whether an hyperedge exists or not.\
+`ρ`: Regularization parameters promoting sparsity.\
+`niter`: Maximal number of iterations for THIS algorithm.
+
+**OUTPUT**:\
+`Ainf`: Dictionary associating the inferred coefficient of the Taylor expansion to a pair (node,hyperedge). Namely, 'Ainf[(i,h)]' is the coefficient corresponding to the hyperedge 'h' in the Taylor expansion of the dynamics of node 'i'. If agents have internal dimensions larger than 1, `Ainf` is just a boolean.\
+`coeff`: Matrix of coefficents obtained by SINDy. The row indices are the agents' indices and the columns indices are the indices of the monomials in the Taylor series.\
+`relerr`: Relative error, i.e., `err` normalized by the squared magnitude of `Y`.
+
+---
+
+

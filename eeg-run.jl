@@ -10,8 +10,8 @@ nz = 7 # Number of zones on the scalp.
 ρ = .1
 
 # Data to be loaded. We recommend to load a subset of the subjects or of the states.
-#subjects = list_all_subjects(109) # Runs THIS on all the time series (can be long).
-subjects = ["001","002"]
+subjects = list_all_subjects(109) # Runs THIS on all the time series (takes ~60 seconds on a standard laptop).
+#subjects = ["001","002"]
 states = ["01","02"] # Resting state
 #states = ["03","07","11"] # Task 1
 
@@ -21,17 +21,17 @@ z = readdlm("eeg-data/zones-$nz.csv",',',Int64)
 s2z = Dict{String,Int64}(s[i] => z[i] for i in 1:length(s))
 
 # Storage of inferences outputs
-AA2 = zeros(Int64,nz,nz)
-AA3 = zeros(Int64,nz,nz,nz)
-relerr = zeros(length(states),0)
+AA2 = Dict{String,Matrix{Float64}}()
+AA3 = Dict{String,Matrix{Float64}}()
+AA4 = Dict{String,Matrix{Float64}}()
+relerr = Dict{String,Float64}()
 
-for subject in subjects
-	re = Float64[]
-	for state in states
-		@info "Running S"*subject*"R"*state
+for su in subjects
+	for st in states
+		@info "Running S"*su*"R"*st
 
 		# Loading data
-		file = "eeg-data/S"*subject*"R"*state*".edf"
+		file = "eeg-data/S"*su*"R"*st*".edf"
 		s2signal = read_eeg(file)
 		
 		# Average signal over zones
@@ -57,31 +57,20 @@ for subject in subjects
 		# Inference
 		ooi = [2,3]
 		dmax = 4
-# TODO check that 'hyper_inf' is not broken...
-		xxx = hyper_inf(X,Y,ooi,dmax,λ,ρ)
-		push!(re,xxx[4])
 		
-		# Retrieve adjacency tensors	
-		A2 = inferred_adj_2nd(xxx[1][2],nz)[2]
-		A3 = inferred_adj_3rd(xxx[1][3],nz)[2]
-		B2 = (abs.(A2) .> 1e-8)
-		B3 = (abs.(A3) .> 1e-8)
-
-		# Collect all boolean adjacency tensors
-		global AA2 += B2
-		global AA3 += B3
-
-		writedlm("eeg-data/S"*subject*"R"*state*"-A2.csv",A2,',')
-		x = zeros(nz,0)
-		for i in 1:nz
-			x = [x A3[:,:,i]]
+		Ainf,coeff,re = this(X,Y,ooi,dmax,λ,ρ)
+		
+		if 2 in keys(Ainf)
+			global AA2["S"*su*"R"*st] = Ainf[2]
 		end
-		writedlm("eeg-data/S"*subject*"R"*state*"-A3.csv",x,',')
-
-		writedlm("eeg-data/S"*subject*"R"*state*"-coeff.csv",xxx[2],',')
+		if 3 in keys(Ainf)
+			global AA3["S"*su*"R"*st] = Ainf[3]
 		end
-	global relerr = [relerr re]
+		if 4 in keys(Ainf)
+			global AA4["S"*su*"R"*st] = Ainf[4]
+		end
+		global relerr["S"*su*"R"*st] = re
+	end
 end
 
-writedlm("eeg-data/relative-error.csv",relerr,',')
 
